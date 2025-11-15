@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            /* Neon/Tech theme colors */
+            --bg-color: #121212;
+            --cell-bg: #1e1e1e;
+            --cell-hover: #2a2a2a;
+            --border-color: #333;
+            --player-x-color: #00ff00; /* Neon Green */
+            --player-o-color: #00faff; /* Neon Blue */
+            --text-color: #f4f4f4;
+            --win-bg: #333;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        /* --- 2. Typography --- */
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            color: var(--text-color);
+            font-size: 2rem;
+            text-shadow: 0 0 5px var(--player-o-color);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .status-display {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            height: 30px; /* Reserve space to prevent layout shift */
+            text-align: center;
+        }
+
+        /* --- 3. Game Board --- */
+        .game-board {
+            display: grid;
+            /* Create a 3x3 grid, each cell 100px */
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            background-color: #000;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: var(--cell-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            
+            /* Center the 'X' or 'O' */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            font-family: 'Press Start 2P', cursive;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Hover effect ONLY for empty cells */
+        .cell:not(.x):not(.o):hover {
+            background-color: var(--cell-hover);
+        }
+
+        /* Player-specific colors */
+        .cell.x {
+            color: var(--player-x-color);
+            text-shadow: 0 0 10px var(--player-x-color);
+        }
+
+        .cell.o {
+            color: var(--player-o-color);
+            text-shadow: 0 0 10px var(--player-o-color);
+        }
+
+        /* --- 4. Win Animation & Button --- */
+
+        /* Animation for the winning cells */
+        .winning-cell {
+            animation: pulse 0.6s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from {
+                background-color: var(--cell-bg);
+            }
+            to {
+                background-color: var(--win-bg);
+            }
+        }
+
+        .restart-button {
+            margin-top: 2rem;
+            padding: 12px 25px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            background-color: var(--player-o-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--player-o-color);
+        }
+
+        /* --- 5. Responsive Design --- */
+        @media (max-width: 400px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .status-display {
+                font-size: 1.2rem;
+            }
+            .game-board {
+                /* Scale grid down for small screens */
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+                gap: 5px;
+            }
+            .cell {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Main Game Container -->
+    <div class="container">
+        <h1>Tic-Tac-Toe</h1>
+        
+        <!-- Status display for turns and wins -->
+        <div class="status-display" id="statusDisplay">Player X's Turn</div>
+        
+        <!-- The 3x3 game board -->
+        <div class="game-board" id="gameBoard">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        
+        <!-- Restart Button -->
+        <button class="restart-button" id="restartButton">Restart Game</button>
+    </div>
+
+    <!-- JavaScript for Game Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. Get DOM Elements ---
+            const cells = document.querySelectorAll('.cell');
+            const statusDisplay = document.getElementById('statusDisplay');
+            const restartButton = document.getElementById('restartButton');
+
+            // --- 2. Game State Variables ---
+            let gameActive = true;
+            let currentPlayer = 'X';
+            // gameState tracks the board. "" = empty, "X" = X, "O" = O
+            let gameState = ["", "", "", "", "", "", "", "", ""];
+
+            // All possible winning combinations
+            const winningConditions = [
+                [0, 1, 2], // Horizontal
+                [3, 4, 5], // Horizontal
+                [6, 7, 8], // Horizontal
+                [0, 3, 6], // Vertical
+                [1, 4, 7], // Vertical
+                [2, 5, 8], // Vertical
+                [0, 4, 8], // Diagonal
+                [2, 4, 6]  // Diagonal
+            ];
+
+            // --- 3. Messages ---
+            const winMessage = () => `Player ${currentPlayer} Wins!`;
+            const drawMessage = () => `Game Ended in a Draw!`;
+            const currentPlayerTurn = () => `Player ${currentPlayer}'s Turn`;
+
+            // --- 4. Initial Setup ---
+            statusDisplay.textContent = currentPlayerTurn();
+
+            // --- 5. Core Game Functions ---
+
+            /**
+             * Called when a cell is played. Updates the UI and game state.
+             */
+            function handleCellPlayed(clickedCell, clickedCellIndex) {
+                gameState[clickedCellIndex] = currentPlayer;
+                clickedCell.textContent = currentPlayer;
+                clickedCell.classList.add(currentPlayer.toLowerCase());
+            }
+
+            /**
+             * Swaps the current player and updates the status display.
+             */
+            function handlePlayerChange() {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                statusDisplay.textContent = currentPlayerTurn();
+            }
+
+            /**
+             * Checks if the game has been won, drawn, or should continue.
+             */
+            function handleResultValidation() {
+                let roundWon = false;
+                let winningLine = [];
+
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const winCondition = winningConditions[i];
+                    let a = gameState[winCondition[0]];
+                    let b = gameState[winCondition[1]];
+                    let c = gameState[winCondition[2]];
+
+                    if (a === '' || b === '' || c === '') {
+                        continue; // This line isn't full, so it can't be a win
+                    }
+                    if (a === b && b === c) {
+                        roundWon = true;
+                        winningLine = winCondition; // Store the winning line
+                        break;
+                    }
+                }
+
+                if (roundWon) {
+                    statusDisplay.textContent = winMessage();
+                    gameActive = false;
+                    
+                    // Add animation class to winning cells
+                    winningLine.forEach(index => {
+                        cells[index].classList.add('winning-cell');
+                    });
+                    return;
+                }
+
+                // Check for a draw (if no cells are empty)
+                let roundDraw = !gameState.includes("");
+                if (roundDraw) {
+                    statusDisplay.textContent = drawMessage();
+                    gameActive = false;
+                    return;
+                }
+
+                // If no win and no draw, change player and continue
+                handlePlayerChange();
+            }
+
+            /**
+             * Called when a user clicks on a cell.
+             */
+            function handleCellClick(clickedCellEvent) {
+                const clickedCell = clickedCellEvent.target;
+                // Get the 'data-index' (0-8) from the clicked cell
+                const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+                // --- Guard Clauses ---
+                // 1. Is the cell already filled?
+                // 2. Is the game inactive (already won or drawn)?
+                if (gameState[clickedCellIndex] !== "" || !gameActive) {
+                    return;
+                }
+
+                // --- If valid, proceed ---
+                handleCellPlayed(clickedCell, clickedCellIndex);
+                handleResultValidation();
+            }
+
+            /**
+             * Resets the game to its initial state.
+             */
+            function handleRestartGame() {
+                gameActive = true;
+                currentPlayer = 'X';
+                gameState = ["", "", "", "", "", "", "", "", ""];
+                statusDisplay.textContent = currentPlayerTurn();
+
+                // Clear all cells in the UI
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('x', 'o', 'winning-cell');
+                });
+            }
+
+            // --- 6. Event Listeners ---
+            // Add click listener to all 9 cells
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            // Add click listener to the restart button
+            restartButton.addEventListener('click', handleRestartGame);
+        });
+    </script>
+
+</body>
+</html>
